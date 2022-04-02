@@ -10,7 +10,9 @@
         android:id="@+id/textView2"
         android:layout_width="184dp"
         android:layout_height="129dp"
+        android:layout_marginStart="112dp"
+        android:layout_marginTop="228dp"
         android:text="This is the game"
-        tools:layout_editor_absoluteX="109dp"
-        tools:layout_editor_absoluteY="288dp" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
