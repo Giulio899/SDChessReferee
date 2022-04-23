@@ -4,6 +4,7 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
+import android.widget.EditText
 
 class MainActivity : AppCompatActivity() {
 
@@ -14,6 +15,8 @@ class MainActivity : AppCompatActivity() {
 
     fun startGame(view: View) {
         val intent = Intent(this, GameActivity::class.java)
+        var editTextTime=findViewById<EditText>(R.id.editTextTime);
+        intent.putExtra("EditTextTime",editTextTime.text.toString());
         startActivity(intent)
     }
 }
