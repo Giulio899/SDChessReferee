@@ -162,51 +162,56 @@ class GameActivity : AppCompatActivity(), View.OnClickListener, ImageAnalysis.An
     }*/
     private fun startTimer(player: String){
         val initValueTimer=intent.extras?.get("EditTextTime").toString()
-        if( initValueTimer.isNotBlank()) {
+        if(initValueTimer.isNotBlank()) {
             val tokens= initValueTimer.split(":")
-            if(tokens[0].length == 2 && tokens[1].length == 2 && tokens[2].length == 2 ) {
+            if (tokens.count() == 3) {
+                if(tokens[0].length == 2 && tokens[1].length == 2 && tokens[2].length == 2 ) {
 
-                time_in_milli_seconds = checkTokens(tokens[0],tokens[1],tokens[2])
-                when (player){
-                    "White" -> {
-                        textViewWhite = findViewById(R.id.textView_countdown_White)
-                        countdown_timer_White = object : CountDownTimer(time_in_milli_seconds, 1000) {
+                    time_in_milli_seconds = checkTokens(tokens[0],tokens[1],tokens[2])
+                    when (player){
+                        "White" -> {
+                            textViewWhite = findViewById(R.id.textView_countdown_White)
+                            countdown_timer_White = object : CountDownTimer(time_in_milli_seconds, 1000) {
 
-                            // Callback function, fired on regular interval
-                            override fun onTick(millisUntilFinished: Long) {
-                                time_in_milli_seconds = millisUntilFinished
-                                updateTextUI("White")
+                                // Callback function, fired on regular interval
+                                override fun onTick(millisUntilFinished: Long) {
+                                    time_in_milli_seconds = millisUntilFinished
+                                    updateTextUI("White")
 
+                                }
+
+                                override fun onFinish() {
+                                    textViewWhite?.setText("STOP")
+                                }
                             }
-
-                            override fun onFinish() {
-                                textViewWhite?.setText("STOP")
-                            }
+                            countdown_timer_White.start()
+                            isRunning = true
                         }
-                        countdown_timer_White.start()
-                        isRunning = true
-                    }
-                    "Black" -> {
-                        textViewBlack = findViewById(R.id.textView_countdown_Black)
-                        countdown_timer_Black = object : CountDownTimer(time_in_milli_seconds, 1000) {
+                        "Black" -> {
+                            textViewBlack = findViewById(R.id.textView_countdown_Black)
+                            countdown_timer_Black = object : CountDownTimer(time_in_milli_seconds, 1000) {
 
-                            // Callback function, fired on regular interval
-                            override fun onTick(millisUntilFinished: Long) {
-                                time_in_milli_seconds = millisUntilFinished
-                                updateTextUI("Black")
+                                // Callback function, fired on regular interval
+                                override fun onTick(millisUntilFinished: Long) {
+                                    time_in_milli_seconds = millisUntilFinished
+                                    updateTextUI("Black")
 
+                                }
+
+                                override fun onFinish() {
+                                    textViewBlack?.setText("STOP")
+                                }
                             }
-
-                            override fun onFinish() {
-                                textViewBlack?.setText("STOP")
-                            }
+                            countdown_timer_Black.start()
+                            isRunning = true
                         }
-                        countdown_timer_Black.start()
-                        isRunning = true
                     }
+
+                }else{
+                    Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
+                    finish()
                 }
-
-            }else{
+            } else {
                 Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
                 finish()
             }
