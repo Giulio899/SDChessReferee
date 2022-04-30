@@ -10,7 +10,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.ChessRefereeApp">
+        android:theme="@style/Theme.ChessRefereeApp"
+        android:name="com.chaquo.python.android.PyApplication">
         <activity
             android:name=".GameActivity"
             android:exported="false" />

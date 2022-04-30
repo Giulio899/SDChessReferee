@@ -5,18 +5,28 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
 import android.widget.EditText
+import android.widget.TextView
+import com.chaquo.python.Python
 
 class MainActivity : AppCompatActivity() {
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val py = Python.getInstance()
+        val pyobj = py.getModule("prova")
+        val obj = pyobj.callAttr("main")
+
+        val text = findViewById<TextView>(R.id.provapy)
+        text.setText(obj.toString())
     }
 
     fun startGame(view: View) {
         val intent = Intent(this, GameActivity::class.java)
-        var editTextTime=findViewById<EditText>(R.id.editTextTime);
-        intent.putExtra("EditTextTime",editTextTime.text.toString());
+        val editTextTime=findViewById<EditText>(R.id.editTextTime)
+        intent.putExtra("EditTextTime",editTextTime.text.toString())
         startActivity(intent)
     }
 }
