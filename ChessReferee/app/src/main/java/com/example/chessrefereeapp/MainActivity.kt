@@ -15,6 +15,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+
         val py = Python.getInstance()
         val pyobj = py.getModule("prova").callAttr("Counter")
         val obj = pyobj.callAttr("get")
