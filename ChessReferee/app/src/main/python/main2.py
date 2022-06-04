@@ -18,6 +18,7 @@ from sklearn.cluster import KMeans
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
+import time
 import pandas as pd
 from tabulate import tabulate
 from handDetector import HandDetector
@@ -306,6 +307,8 @@ def format_squares_piece_text(sq_pc):
             sq_pc_formatted.append('\n')
 
     return ''.join(sq_pc_formatted)
+
+
 def fit_performance(board_img, piece_model, presence_model):
     '''
     Measure performance - cheat and show predicted values on training set
@@ -327,9 +330,15 @@ def fit_performance(board_img, piece_model, presence_model):
                 squares.append(neigh2.predict(hist)[0])
         else:
             squares.append('0')
-    format_squares_piece_text(squares)
-    #print('Current predicted values', ''.join(squares))
+    print('Current predicted values', ''.join(squares))
     chunks = [squares[x:x+8] for x in range(0, len(squares), 8)]
+    print(" |\ta\tb\tc\td\te\tf\tg\th")
+    print(" |__________________________________________________________________________")
+    index=1
+    for row in chunks:
+        print(str(index)+"|\t"+row[0]+"\t"+row[1]+"\t"+row[2]+"\t"+row[3]+"\t"+row[4]+"\t"+row[5]+"\t"+row[6]+"\t"+row[7]+"\t")
+        print(" |")
+        index+=1
     return chunks
         
 
@@ -697,7 +706,6 @@ def play(args):
                 raise Exception('illegal move')
 
         # display UI
-        print("prima della UI")
         display_image_window('Current Board', label_squares(curr_board_img, recom_move=recom_move), 0 * UI_WINDOW_WIDTH, 0 * UI_WINDOW_HEIGHT)
         try:
             display_image_window('Status', stat_img, 1 * UI_WINDOW_WIDTH, 0 * UI_WINDOW_HEIGHT)
@@ -745,20 +753,7 @@ def get_chessboard_corners(img, draw_corners=False):
         else:
             return corners, img
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        '--camera',
-        type=int,
-        help="Camera index - {0, 1, ..., -1 for test images}",
-        default=1
-    )
-
-    args = parser.parse_args()
-
-    CAMERA_INDEX = args.camera
-
+def game_checking():
     #calibrate(1)
     #input("Press y to reach next calibration step...")
     #MAIUSCOLE--> BIANCHI
@@ -769,12 +764,13 @@ if __name__ == '__main__':
     board=chess.Board()
     prev_board=calibrate(2)
     detector=HandDetector()
+    turn=chess.WHITE
     while(True):
-        turn=chess.WHITE
         legal_moves = [x.uci() for x in board.legal_moves]
         print(board)
         #input("Press any key after a move...")
         detector.detect()
+        time.sleep(2)
         current_board=calibrate(2)
         start=None
         end=None
@@ -782,16 +778,22 @@ if __name__ == '__main__':
         #castling
         casteled=False
         if(board.has_castling_rights(turn)):
+            print("Checking castling move...")
             if(turn==chess.WHITE):
-                r=1
+                print("Checking castling move white...")
+                r=0
             elif(turn==chess.BLACK):
-                r=8
+                print("Checking castling move black...")
+                r=7
             if(current_board[r][ord('e')-97]=="0"):
-                if(current_board[r][ord('h')-97]=="0" and prev_board[r][ord('h')-97]=="0"):
-                    detected_move="O-O"
+                print("RE mosso")
+                if(current_board[r][ord('h')-97]=="0" and prev_board[r][ord('h')-97]!="0"):
+                    detected_move="e"+str(r+1)+"g"+str(r+1)
+                    print("Arrocco corto...")
                     casteled=True
-                elif(current_board[r][ord('a')-97]=="0" and prev_board[r][ord('a')-97]=="0"):
-                    detected_move="O-O-O"
+                elif(current_board[r][ord('a')-97]=="0" and prev_board[r][ord('a')-97]!="0"):
+                    detected_move="e"+str(r+1)+"c"+str(r+1)
+                    print("Arrocco lungo...")
                     casteled=True
         
         #normal-move
@@ -806,10 +808,14 @@ if __name__ == '__main__':
                         else:
                             end=chr(97+column)+str(row+1)
                             print(end)
-                            
-        detected_move=start+end
-        print("Move detected: "+detected_move)
-        if((start+end) in legal_moves):
+            if(start==None or end==None):
+                print("No moves detected")
+            else:
+                detected_move=start+end
+        if(detect_move==None):
+            print("No moves detected")
+        elif((detected_move) in legal_moves):
+            print("Move detected: "+detected_move)
             move = chess.Move.from_uci(detected_move)
             board.push(move)
             prev_board=current_board
@@ -819,6 +825,24 @@ if __name__ == '__main__':
                 turn=chess.WHITE
         else:
             print("Illegal Move: armetti a posto")
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--camera',
+        type=int,
+        help="Camera index - {0, 1, ..., -1 for test images}",
+        default=1
+    )
+
+    args = parser.parse_args()
+
+    CAMERA_INDEX = args.camera
+
+    
+    game_checking()
         
 
     
