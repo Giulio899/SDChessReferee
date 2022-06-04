@@ -1,38 +1,27 @@
 package com.example.chessrefereeapp
 
 import android.Manifest
-import android.content.ContentValues
 import android.content.pm.PackageManager
-import android.graphics.*
-import android.icu.text.SimpleDateFormat
-import android.net.Uri
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.os.Environment
-import android.provider.MediaStore
-import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
-import androidx.camera.core.ImageCapture.OnImageCapturedCallback
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
-import java.io.OutputStream
-import java.util.*
+import com.example.chessrefereeapp.handdetection.HandDetector
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
 
 private const val PERMISSION_REQUEST_CODE = 200
-
-class GameActivity : AppCompatActivity(), View.OnClickListener, ImageAnalysis.Analyzer {
-
+//View.OnClickListener, ImageAnalysis.Analyzer
+class GameActivity : AppCompatActivity(){
 
     private var pview: PreviewView? = null
     private var imview: ImageView? = null
+    private var handDetectionFrameLayout : FrameLayout? = null
     private var imageCapt: ImageCapture? = null
     private var analysis_on = false
     var textViewBlack: TextView? = null
@@ -41,33 +30,34 @@ class GameActivity : AppCompatActivity(), View.OnClickListener, ImageAnalysis.An
     lateinit var countdown_timer_White: CountDownTimer
     var isRunning: Boolean = false
     var time_in_milli_seconds = 0L
-
+    private var handDetector :HandDetector? = null
+    private var startGameButton : Button? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
 
-        if (!checkPermission()) {
+        /*if (!checkPermission()) {
             System.out.println("Nope nope")
             requestPermission()
-        }
+        }*/
         startTimer("White")
+
         var picture_bt = findViewById<Button>(R.id.picture_bt)
         var analysis_bt = findViewById<Button>(R.id.analysis_bt)
+
         pview = findViewById(R.id.previewView)
         imview = findViewById(R.id.imageView)
+        handDetectionFrameLayout=findViewById(R.id.preview_display_layout)
 
-        picture_bt.setOnClickListener(this)
-        analysis_bt.setOnClickListener(this)
+        //picture_bt.setOnClickListener(this)
+        //analysis_bt.setOnClickListener(this)
         this.analysis_on = false
 
 
-        picture_bt.setOnClickListener(this)
-        analysis_bt.setOnClickListener(this)
-        analysis_on = false
 
-        var provider = ProcessCameraProvider.getInstance(this)
+        /*var provider = ProcessCameraProvider.getInstance(this)
         provider.addListener({
             try {
                 val cameraProvider: ProcessCameraProvider = provider.get()
@@ -75,66 +65,77 @@ class GameActivity : AppCompatActivity(), View.OnClickListener, ImageAnalysis.An
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-        }, getExecutor())
-    }
-    private fun checkTokens(hhToken: String, mmToken: String, ssToken: String): Long {
-        val hh= hhToken.toLong()
-        val mm= mmToken.toLong()
-        val ss= ssToken.toLong()
-        var res=0L;
-        if( hh in 0..23 && mm in 0..59 && ss in 0..59 ){
-            val hhToMillis = TimeUnit.HOURS.toMillis(hh)
-            val mmToMillis = TimeUnit.MINUTES.toMillis(mm)
-            val ssToMillis = TimeUnit.SECONDS.toMillis(ss)
-            res= hhToMillis + mmToMillis + ssToMillis;
-        }else {
-            Toast.makeText(this,"Wrong time value!", Toast.LENGTH_LONG).show()
-            finish()
+        }, getExecutor())*/
+
+        handDetector= HandDetector(this, frameLayout = handDetectionFrameLayout)
+
+        startGameButton= findViewById(R.id.startGame)
+
+        startGameButton!!.setOnClickListener { _ ->
+            startGame()
+
         }
-        return res
+
+
     }
 
-    /*private fun startTimerBlack(){
+    private fun startGame(){
+
+
+
+        while (!handDetector!!.getMoveDetected()) {
+
+
+        }
+
+
+        println("mossaaaaaaaaaaaaa fattaaaaaaaaaaaaaaaa")
+
+
+
+    }
+
+
+    private fun checkTokens(hhToken: String, mmToken: String, ssToken: String): Long {
+        val hh = hhToken.toLong()
+        val mm = mmToken.toLong()
+        val ss = ssToken.toLong()
+
+        if (hh !in 0..23 || mm !in 0..59 || ss !in 0..59) {
+            Toast.makeText(this, "Wrong time value!", Toast.LENGTH_LONG).show()
+            finish()
+
+        }
+        val hhToMillis = TimeUnit.HOURS.toMillis(hh)
+        val mmToMillis = TimeUnit.MINUTES.toMillis(mm)
+        val ssToMillis = TimeUnit.SECONDS.toMillis(ss)
+        return hhToMillis + mmToMillis + ssToMillis;
+    }
+
+    private fun startTimer(player: String){
         val initValueTimer=intent.extras?.get("EditTextTime").toString()
-        if( initValueTimer.isNotBlank()) {
-            var tokens= initValueTimer.split(":")
-            if(tokens[0].length == 2 && tokens[1].length == 2 && tokens[2].length == 2 ) {
-
-                time_in_milli_seconds = checkTokens(tokens[0],tokens[1],tokens[2])
-
-                textViewBlack = findViewById(R.id.textView_countdown_Black)
-                countdown_timer_Black = object : CountDownTimer(time_in_milli_seconds, 1000) {
-
-                    // Callback function, fired on regular interval
-                    override fun onTick(millisUntilFinished: Long) {
-                        time_in_milli_seconds = millisUntilFinished
-                        updateTextUI("Black")
-
-                    }
-
-                    override fun onFinish() {
-                        textViewBlack?.text = "STOP"
-                    }
-                }
-                countdown_timer_Black.start()
-                isRunning = true
-            }else{
-                Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
-                finish()
-            }
-        }else{
+        if(initValueTimer.isBlank()) {
             Toast.makeText(this,"Error: Please digit time value!", Toast.LENGTH_LONG).show()
             finish()
+            return
         }
-    }*/
-    /*private fun startTimerWhite(){
-        val initValueTimer=intent.extras?.get("EditTextTime").toString()
-        if( initValueTimer.isNotBlank()) {
-            val tokens= initValueTimer.split(":")
-            if(tokens[0].length == 2 && tokens[1].length == 2 && tokens[2].length == 2 ) {
+        val tokens= initValueTimer.split(":")
 
-                time_in_milli_seconds = checkTokens(tokens[0],tokens[1],tokens[2])
+        if (tokens.count() != 3) {
+            Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
 
+        if(tokens[0].length != 2 || tokens[1].length != 2 || tokens[2].length != 2 ) {
+            Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
+
+        time_in_milli_seconds = checkTokens(tokens[0],tokens[1],tokens[2])
+        when (player){
+            "White" -> {
                 textViewWhite = findViewById(R.id.textView_countdown_White)
                 countdown_timer_White = object : CountDownTimer(time_in_milli_seconds, 1000) {
 
@@ -151,81 +152,33 @@ class GameActivity : AppCompatActivity(), View.OnClickListener, ImageAnalysis.An
                 }
                 countdown_timer_White.start()
                 isRunning = true
-            }else{
-                Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
-                finish()
-                }
-        }else{
-            Toast.makeText(this,"Error: Please digit time value!", Toast.LENGTH_LONG).show()
-            finish()
-        }
-    }*/
-    private fun startTimer(player: String){
-        val initValueTimer=intent.extras?.get("EditTextTime").toString()
-        if(initValueTimer.isNotBlank()) {
-            val tokens= initValueTimer.split(":")
-            if (tokens.count() == 3) {
-                if(tokens[0].length == 2 && tokens[1].length == 2 && tokens[2].length == 2 ) {
+            }
+            "Black" -> {
+                textViewBlack = findViewById(R.id.textView_countdown_Black)
+                countdown_timer_Black = object : CountDownTimer(time_in_milli_seconds, 1000) {
 
-                    time_in_milli_seconds = checkTokens(tokens[0],tokens[1],tokens[2])
-                    when (player){
-                        "White" -> {
-                            textViewWhite = findViewById(R.id.textView_countdown_White)
-                            countdown_timer_White = object : CountDownTimer(time_in_milli_seconds, 1000) {
+                    // Callback function, fired on regular interval
+                    override fun onTick(millisUntilFinished: Long) {
+                        time_in_milli_seconds = millisUntilFinished
+                        updateTextUI("Black")
 
-                                // Callback function, fired on regular interval
-                                override fun onTick(millisUntilFinished: Long) {
-                                    time_in_milli_seconds = millisUntilFinished
-                                    updateTextUI("White")
-
-                                }
-
-                                override fun onFinish() {
-                                    textViewWhite?.setText("STOP")
-                                }
-                            }
-                            countdown_timer_White.start()
-                            isRunning = true
-                        }
-                        "Black" -> {
-                            textViewBlack = findViewById(R.id.textView_countdown_Black)
-                            countdown_timer_Black = object : CountDownTimer(time_in_milli_seconds, 1000) {
-
-                                // Callback function, fired on regular interval
-                                override fun onTick(millisUntilFinished: Long) {
-                                    time_in_milli_seconds = millisUntilFinished
-                                    updateTextUI("Black")
-
-                                }
-
-                                override fun onFinish() {
-                                    textViewBlack?.setText("STOP")
-                                }
-                            }
-                            countdown_timer_Black.start()
-                            isRunning = true
-                        }
                     }
 
-                }else{
-                    Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
-                    finish()
+                    override fun onFinish() {
+                        textViewBlack?.setText("STOP")
+                    }
                 }
-            } else {
-                Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
-                finish()
+                countdown_timer_Black.start()
+                isRunning = true
             }
-        }else{
-            Toast.makeText(this,"Error: Please digit time value!", Toast.LENGTH_LONG).show()
-            finish()
         }
-    }
-    /*private fun pauseTimer() {
-        countdown_timer.cancel()
-        isRunning = false
-        //todo
 
-    }*/
+
+
+
+    }
+
+
     private fun updateTextUI(player: String) {
 
         val hours=(time_in_milli_seconds / 1000) /3600
@@ -250,7 +203,7 @@ class GameActivity : AppCompatActivity(), View.OnClickListener, ImageAnalysis.An
         )
     }
 
-    private fun startCamera(cameraProvider: ProcessCameraProvider) {
+    /*private fun startCamera(cameraProvider: ProcessCameraProvider) {
         cameraProvider.unbindAll()
         val camSelector =
             CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
@@ -270,20 +223,22 @@ class GameActivity : AppCompatActivity(), View.OnClickListener, ImageAnalysis.An
             imageCapt,
             imageAn
         )
-    }
+    }*/
+
 
 
     private fun getExecutor(): Executor {
+
         return ContextCompat.getMainExecutor(this)
     }
-    override fun onClick(view: View) {
+    /*override fun onClick(view: View) {
         when (view.id) {
             R.id.picture_bt -> capturePhoto()
             R.id.analysis_bt -> analysis_on = !analysis_on
         }
-    }
+    }*/
 
-    private fun capturePhoto() {
+    /*private fun capturePhoto() {
         //Es. SISDIG_2021127_189230.jpg
         val pictureName =
             "SISDIG_" + SimpleDateFormat("yyyyMMdd_HHmmss").format(Date()).toString() + ".jpeg"
@@ -345,15 +300,14 @@ class GameActivity : AppCompatActivity(), View.OnClickListener, ImageAnalysis.An
     }
 
     override fun analyze(image: ImageProxy) {
+
         if (analysis_on) {
-            var conv = pview!!.bitmap
-            // Do something here!!!
+            var conv=pview!!.bitmap
             conv = conv?.let { toGrayscale(it) }
             imview!!.setImageBitmap(conv)
         }
         image.close()
     }
-
     fun toGrayscale(bmpOriginal: Bitmap): Bitmap? {
         val width: Int
         val height: Int
@@ -368,6 +322,9 @@ class GameActivity : AppCompatActivity(), View.OnClickListener, ImageAnalysis.An
         paint.setColorFilter(f)
         c.drawBitmap(bmpOriginal, 0.0F, 0.0F, paint)
         return bmpGrayscale
-    }
+    }*/
+
+
+
 
 }

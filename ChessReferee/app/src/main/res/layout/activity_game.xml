@@ -38,14 +38,19 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="TextView" />
 
+
+        <FrameLayout
+            android:id="@+id/preview_display_layout"
+            android:layout_width="match_parent"
+            android:layout_height="213dp">
+
+        </FrameLayout>
+
         <androidx.camera.view.PreviewView
             android:id="@+id/previewView"
             android:layout_width="match_parent"
             android:layout_height="279dp"
-            android:layout_weight="90" >
-
-
-        </androidx.camera.view.PreviewView>
+            android:layout_weight="90" />
 
         <ImageView
             android:id="@+id/imageView"
@@ -53,12 +58,12 @@
             android:layout_height="279dp"
             android:layout_weight="90"
             tools:srcCompat="@tools:sample/avatars" />
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="146dp"
             android:layout_weight="90"
             android:orientation="horizontal">
+
 
             <Button
                 android:id="@+id/picture_bt"
@@ -66,6 +71,13 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Take Picture" />
+
+            <Button
+                android:id="@+id/startGame"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Start Game" />
 
             <Button
                 android:id="@+id/analysis_bt"
