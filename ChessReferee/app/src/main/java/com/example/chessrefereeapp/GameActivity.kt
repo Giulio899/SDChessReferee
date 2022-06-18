@@ -2,62 +2,84 @@ package com.example.chessrefereeapp
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.Environment
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.BitmapCompat
+import androidx.lifecycle.LifecycleOwner
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 import com.example.chessrefereeapp.handdetection.HandDetector
+import org.opencv.android.Utils
+import org.opencv.core.Mat
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
+import java.util.*
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
 
 private const val PERMISSION_REQUEST_CODE = 200
-//View.OnClickListener, ImageAnalysis.Analyzer
-class GameActivity : AppCompatActivity(){
+
+private enum class Player{
+    WHITE,BLACK
+}
+
+class GameActivity : AppCompatActivity(), View.OnClickListener{
 
     private var pview: PreviewView? = null
     private var imview: ImageView? = null
-    private var handDetectionFrameLayout : FrameLayout? = null
     private var imageCapt: ImageCapture? = null
     private var analysis_on = false
     var textViewBlack: TextView? = null
     var textViewWhite: TextView? = null
     lateinit var countdown_timer_Black: CountDownTimer
     lateinit var countdown_timer_White: CountDownTimer
-    var isRunning: Boolean = false
     var time_in_milli_seconds = 0L
-    private var handDetector :HandDetector? = null
+    private var handDetector : HandDetector? = null
     private var startGameButton : Button? = null
+    private var turn : Player= Player.WHITE
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
 
-        /*if (!checkPermission()) {
+        if (!checkPermission()) {
             System.out.println("Nope nope")
             requestPermission()
-        }*/
-        startTimer("White")
+        }
+        startTimer(turn)
 
-        var picture_bt = findViewById<Button>(R.id.picture_bt)
+        //var picture_bt = findViewById<Button>(R.id.picture_bt)
         var analysis_bt = findViewById<Button>(R.id.analysis_bt)
 
         pview = findViewById(R.id.previewView)
-        imview = findViewById(R.id.imageView)
-        handDetectionFrameLayout=findViewById(R.id.preview_display_layout)
 
+        imview = findViewById(R.id.imageView)
+
+        textViewBlack = findViewById(R.id.textView_countdown_Black)
+        textViewWhite = findViewById(R.id.textView_countdown_White)
         //picture_bt.setOnClickListener(this)
-        //analysis_bt.setOnClickListener(this)
+        analysis_bt!!.setOnClickListener(this)
         this.analysis_on = false
 
 
 
-        /*var provider = ProcessCameraProvider.getInstance(this)
+        var provider = ProcessCameraProvider.getInstance(this)
         provider.addListener({
             try {
                 val cameraProvider: ProcessCameraProvider = provider.get()
@@ -65,35 +87,97 @@ class GameActivity : AppCompatActivity(){
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-        }, getExecutor())*/
+        }, getExecutor())
 
-        handDetector= HandDetector(this, frameLayout = handDetectionFrameLayout)
+        handDetector= HandDetector(this)
 
         startGameButton= findViewById(R.id.startGame)
 
-        startGameButton!!.setOnClickListener { _ ->
+        startGameButton!!.setOnClickListener {
+
             startGame()
 
         }
 
 
     }
+    private fun sendBitmapToDetector(){
 
-    private fun startGame(){
+        handDetector!!.processBitmap(pview!!.bitmap)
+    }
 
-
-
-        while (!handDetector!!.getMoveDetected()) {
-
-
-        }
-
-
-        println("mossaaaaaaaaaaaaa fattaaaaaaaaaaaaaaaa")
-
-
+    private fun switchPlayer(){
+        if(turn == Player.WHITE)
+            turn= Player.BLACK
+        else if(turn== Player.BLACK)
+            turn = Player.WHITE
 
     }
+
+    private fun startGame() {
+
+
+        var i = 0;
+        while (i<3){ // parte la partita
+
+            println("entro nel ciclo ciclo")
+
+            while (!handDetector!!.isMoveDetected())
+                sendBitmapToDetector()
+
+            Thread.sleep(2000)
+            val currentBoardImage= pview!!.bitmap
+
+            val convertedBoardImage= convertBitmap(currentBoardImage)
+            // qui va il codice per invocare la parte di python (lato python eseguire operazioni di conversione
+            //presenti nello script testBitmap.py)
+
+            i++
+        }
+
+    }
+
+
+
+
+    private fun convertBitmap(inputBitmap: Bitmap?): String?{
+        if (inputBitmap == null)
+            return null
+        val resizedBitmap = Bitmap.createScaledBitmap(inputBitmap,640,480,false)
+        val bos=ByteArrayOutputStream()
+        resizedBitmap.compress(Bitmap.CompressFormat.PNG,100,bos)
+        val imageAsByteArray= bos.toByteArray()
+        return Base64.getEncoder().encodeToString(imageAsByteArray)
+    }
+
+
+
+    /*fun toGrayscale(bmpOriginal: Bitmap): Bitmap? {
+        val width: Int
+        val height: Int
+        height = bmpOriginal.height
+        width = bmpOriginal.width
+        val bmpGrayscale = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmpGrayscale)
+        val paint = Paint()
+        val cm = ColorMatrix()
+        cm.setSaturation(0f)
+        val f = ColorMatrixColorFilter(cm)
+        paint.setColorFilter(f)
+        c.drawBitmap(bmpOriginal, 0.0F, 0.0F, paint)
+        return bmpGrayscale
+    }*/
+
+    /*override fun analyze(image: ImageProxy) {
+
+        if (analysis_on) {
+
+
+                imview!!.setImageBitmap(bitmap)
+        }
+        image.close()
+    }*/
+
 
 
     private fun checkTokens(hhToken: String, mmToken: String, ssToken: String): Long {
@@ -112,7 +196,7 @@ class GameActivity : AppCompatActivity(){
         return hhToMillis + mmToMillis + ssToMillis;
     }
 
-    private fun startTimer(player: String){
+    private fun startTimer(player: Player){
         val initValueTimer=intent.extras?.get("EditTextTime").toString()
         if(initValueTimer.isBlank()) {
             Toast.makeText(this,"Error: Please digit time value!", Toast.LENGTH_LONG).show()
@@ -135,14 +219,16 @@ class GameActivity : AppCompatActivity(){
 
         time_in_milli_seconds = checkTokens(tokens[0],tokens[1],tokens[2])
         when (player){
-            "White" -> {
-                textViewWhite = findViewById(R.id.textView_countdown_White)
+            Player.WHITE -> {
+
+
                 countdown_timer_White = object : CountDownTimer(time_in_milli_seconds, 1000) {
 
                     // Callback function, fired on regular interval
                     override fun onTick(millisUntilFinished: Long) {
+
                         time_in_milli_seconds = millisUntilFinished
-                        updateTextUI("White")
+                        updateTextUI(Player.WHITE)
 
                     }
 
@@ -151,16 +237,17 @@ class GameActivity : AppCompatActivity(){
                     }
                 }
                 countdown_timer_White.start()
-                isRunning = true
+
             }
-            "Black" -> {
-                textViewBlack = findViewById(R.id.textView_countdown_Black)
+            Player.BLACK -> {
+
+
                 countdown_timer_Black = object : CountDownTimer(time_in_milli_seconds, 1000) {
 
                     // Callback function, fired on regular interval
                     override fun onTick(millisUntilFinished: Long) {
                         time_in_milli_seconds = millisUntilFinished
-                        updateTextUI("Black")
+                        updateTextUI(Player.BLACK)
 
                     }
 
@@ -169,7 +256,7 @@ class GameActivity : AppCompatActivity(){
                     }
                 }
                 countdown_timer_Black.start()
-                isRunning = true
+
             }
         }
 
@@ -178,15 +265,21 @@ class GameActivity : AppCompatActivity(){
 
     }
 
+    private fun pauseTimer(player: Player){
+        when(player){
+            Player.BLACK -> countdown_timer_White.cancel()
+            Player.WHITE-> countdown_timer_Black.cancel()
+        }
 
-    private fun updateTextUI(player: String) {
+    }
+    private fun updateTextUI(player: Player) {
 
         val hours=(time_in_milli_seconds / 1000) /3600
         val minute = ((time_in_milli_seconds / 1000) % 3600)/ 60
         val seconds = (time_in_milli_seconds / 1000) % 60
         when (player){
-            "Black" -> textViewBlack?.text = String.format("%02d:%02d:%02d",hours,minute,seconds)
-            "White" -> textViewWhite?.text = String.format("%02d:%02d:%02d",hours,minute,seconds)
+            Player.BLACK -> textViewBlack?.text = String.format("%02d:%02d:%02d",hours,minute,seconds)
+            Player.WHITE -> textViewWhite?.text = String.format("%02d:%02d:%02d",hours,minute,seconds)
         }
 
     }
@@ -203,7 +296,7 @@ class GameActivity : AppCompatActivity(){
         )
     }
 
-    /*private fun startCamera(cameraProvider: ProcessCameraProvider) {
+    private fun startCamera(cameraProvider: ProcessCameraProvider) {
         cameraProvider.unbindAll()
         val camSelector =
             CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
@@ -212,18 +305,18 @@ class GameActivity : AppCompatActivity(){
         imageCapt =
             ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .build()
-        var imageAn =
+        /*var imageAn =
             ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
-        imageAn.setAnalyzer(getExecutor(), this)
+        imageAn.setAnalyzer(getExecutor(), this)*/
         cameraProvider.bindToLifecycle(
             (this as LifecycleOwner),
             camSelector,
             preview,
             imageCapt,
-            imageAn
+            //imageAn
         )
-    }*/
+    }
 
 
 
@@ -231,12 +324,13 @@ class GameActivity : AppCompatActivity(){
 
         return ContextCompat.getMainExecutor(this)
     }
-    /*override fun onClick(view: View) {
+    override fun onClick(view: View) {
         when (view.id) {
-            R.id.picture_bt -> capturePhoto()
+
             R.id.analysis_bt -> analysis_on = !analysis_on
+
         }
-    }*/
+    }
 
     /*private fun capturePhoto() {
         //Es. SISDIG_2021127_189230.jpg
@@ -244,7 +338,7 @@ class GameActivity : AppCompatActivity(){
             "SISDIG_" + SimpleDateFormat("yyyyMMdd_HHmmss").format(Date()).toString() + ".jpeg"
         imageCapt!!.takePicture(
             getExecutor(),
-            object : OnImageCapturedCallback() {
+            object : ImageCapture.OnImageCapturedCallback() {
                 override fun onCaptureSuccess(image: ImageProxy) {
                     //Create the picture's metadata
                     val newPictureDetails = ContentValues()
@@ -273,7 +367,7 @@ class GameActivity : AppCompatActivity(){
                             stream =
                                 applicationContext.contentResolver.openOutputStream(picturePublicUri)
                         }
-                        val bitmapImage = pview!!.bitmap
+                        val bitmapImage = getLastBitMap()
                         if (!bitmapImage!!.compress(
                                 Bitmap.CompressFormat.JPEG,
                                 100,
@@ -297,32 +391,10 @@ class GameActivity : AppCompatActivity(){
                 }
             }
         )
-    }
-
-    override fun analyze(image: ImageProxy) {
-
-        if (analysis_on) {
-            var conv=pview!!.bitmap
-            conv = conv?.let { toGrayscale(it) }
-            imview!!.setImageBitmap(conv)
-        }
-        image.close()
-    }
-    fun toGrayscale(bmpOriginal: Bitmap): Bitmap? {
-        val width: Int
-        val height: Int
-        height = bmpOriginal.height
-        width = bmpOriginal.width
-        val bmpGrayscale = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmpGrayscale)
-        val paint = Paint()
-        val cm = ColorMatrix()
-        cm.setSaturation(0f)
-        val f = ColorMatrixColorFilter(cm)
-        paint.setColorFilter(f)
-        c.drawBitmap(bmpOriginal, 0.0F, 0.0F, paint)
-        return bmpGrayscale
     }*/
+
+
+
 
 
 
