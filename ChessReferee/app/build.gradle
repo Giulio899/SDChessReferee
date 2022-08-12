@@ -23,6 +23,7 @@ android {
             pip {
                 install "scipy"
                 install "opencv-python"
+                install "Pillow"
             }
         }
     }

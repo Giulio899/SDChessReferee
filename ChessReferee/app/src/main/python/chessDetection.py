@@ -13,6 +13,8 @@ from sklearn.preprocessing import StandardScaler
 import pandas as pd
 from tabulate import tabulate
 from handDetector import HandDetector
+from PIL import Image
+import io
 CHESSBOARD_WIDTH = 8
 SQUARE_WIDTH = 100
 CHESSBOARD_SQUARES = 64
@@ -22,7 +24,7 @@ class ChessDetection():
         self.board = chess.Board()
         self.board_matrix = None
 
-    def calibrate_board(self, img):
+    def calibrate_board(self, bmp):
         # 1st calibration image - blank board
 
         # live corner detection with preview
@@ -41,6 +43,9 @@ class ChessDetection():
         # final image capture for calibration
         #img = get_single_image()
         #print('Camera resolution', img.shape[0:2])
+
+        #decode from base64
+        img = self.decodeImage(bmp)
 
         cv2.imwrite('./calibration/empty-board.jpg', img)
 
@@ -429,8 +434,11 @@ class ChessDetection():
         print('Calibration step 2 completed')
         return result
 
-    def game_checking(self, img, player):
+    def game_checking(self, bmp, player):
         detected_move=""
+        # decode from base64
+        img = self.decodeImage(bmp)
+
         if(self.board_matrix == None):
             self.board_matrix = self.calibrate_pieces(img)
             detected_move = "START"
@@ -501,3 +509,17 @@ class ChessDetection():
                 detected_move = "Illegal Move: armetti a posto" 
                 print(detected_move)    
         return detected_move
+
+    def decodeImage(self, bitmap):
+        decoded_image= base64.b64decode(bitmap)
+        image= np.fromstring(decoded_image,np.uint8)
+        image_as_ndarray= cv2.imdecode(image,cv2.IMREAD_UNCHANGED)
+        image_without_alpha_channel= image_as_ndarray[:,:,:3]
+        return image_without_alpha_channel
+
+    def encodeImage(self, img):
+        pil_im = Image.fromarray(img)
+        buff = io.BytesIO()
+        pil_im.save(buff,format="PNG")
+        img_str = base64.b64encode(buff.getvalue())
+        return "" + str(img_str, 'utf-8')

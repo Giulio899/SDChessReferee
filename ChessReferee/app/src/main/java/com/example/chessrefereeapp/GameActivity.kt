@@ -14,6 +14,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.chaquo.python.Python
 import java.io.ByteArrayOutputStream
 import java.util.*
 import java.util.concurrent.Executor
@@ -22,8 +23,8 @@ import java.util.concurrent.TimeUnit
 
 private const val PERMISSION_REQUEST_CODE = 200
 
-private enum class Player{
-    WHITE,BLACK
+private enum class Player(val player: String){
+    WHITE("White"),BLACK("Black")
 }
 
 class GameActivity : AppCompatActivity(), View.OnClickListener{
@@ -40,7 +41,6 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
     private var handDetector : HandDetector? = null
     private var startGameButton : Button? = null
     private var turn : Player= Player.WHITE
-
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,29 +105,52 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
 
     private fun startGame() {
 
+        var end = false
+        val py = Python.getInstance()
 
-        var i = 0;
-        while (i<3){ // parte la partita
+        if (calibrateBoard(py)) {
+            while (!end){ // parte la partita
 
-            println("entro nel ciclo ciclo")
+                println("entro nel ciclo ciclo")
 
-            while (!handDetector!!.isMoveDetected())
-                sendBitmapToDetector()
+                while (!handDetector!!.isMoveDetected())
+                    sendBitmapToDetector()
 
-            Thread.sleep(2000)
-            val currentBoardImage= pview!!.bitmap
+                Thread.sleep(2000)
 
-            val convertedBoardImage= convertBitmap(currentBoardImage)
-            // qui va il codice per invocare la parte di python (lato python eseguire operazioni di conversione
-            //presenti nello script testBitmap.py)
+                // codice per invocare la parte di python
+                val result = checkGame(py)
 
-            i++
+                // valutare result
+                if (result == "Fine") { // stringa fine di python
+                    end = true
+                }
+
+                switchPlayer()
+            }
+        }
+        else {
+            // errore
         }
 
     }
 
+    private fun calibrateBoard(py:Python): Boolean {
+        // calibrate board
+        val pyobj = py.getModule("chessDetection").callAttr("ChessDetection")
+        val currentBoardImage= pview!!.bitmap
+        val convertedBoardImage= convertBitmap(currentBoardImage)
+        val obj = pyobj.callAttr("calibrate_board", convertedBoardImage)
+        return obj.toBoolean()
+    }
 
-
+    private fun checkGame(py:Python): String {
+        val pyobj = py.getModule("chessDetection").callAttr("ChessDetection")
+        val currentBoardImage= pview!!.bitmap
+        val convertedBoardImage= convertBitmap(currentBoardImage)
+        val obj = pyobj.callAttr("game_checking", convertedBoardImage, turn.player)
+        return obj.toString()
+    }
 
     private fun convertBitmap(inputBitmap: Bitmap?): String?{
         if (inputBitmap == null)
@@ -280,7 +303,7 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
 
     private fun requestPermission() {
         ActivityCompat.requestPermissions(
-            this, arrayOf(Manifest.permission.CAMERA),
+            this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE),
             PERMISSION_REQUEST_CODE
         )
     }
