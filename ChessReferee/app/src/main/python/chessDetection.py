@@ -501,7 +501,7 @@ class ChessDetection():
                 print("Move detected: "+detected_move)
                 move = chess.Move.from_uci(detected_move)
                 self.board.push(move)
-                self.board=current_board               
+                self.board_matrix=current_board
             else:
                 detected_move = "Illegal Move: armetti a posto" 
                 print(detected_move)    

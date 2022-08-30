@@ -137,15 +137,19 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
                     sendBitmapToDetector()
 
                 Thread.sleep(2000)
-
+                //stoppare timer
                 // codice per invocare la parte di python
                 val result = checkGame()
-
+                //cambiare se tutto va bene il timer
                 // valutare result
                 if (result == "Fine") { // stringa fine di python
                     end = true
+                    textViewResult?.setText("FINE PARTITA")
                 }
-
+                //pop up che mostra la mossa
+                Toast.makeText(this,"Mossa fatta " + result, Toast.LENGTH_LONG).show()
+                /*textViewResult?.setText("Mossa fatta: " +
+                                        result)*/
                 switchPlayer()
             }
         }
