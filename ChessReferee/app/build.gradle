@@ -24,6 +24,8 @@ android {
                 install "scipy"
                 install "opencv-python"
                 install "Pillow"
+                install "chess"
+                install "sklearn"
             }
         }
     }

@@ -4,16 +4,14 @@ import cv2
 import numpy as np
 import chess
 from chess import polyglot
-from chess import uci
+#from chess import uci
 from sklearn import metrics
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
-import pandas as pd
-from tabulate import tabulate
-from handDetector import HandDetector
 from PIL import Image
+import base64
 import io
 CHESSBOARD_WIDTH = 8
 SQUARE_WIDTH = 100
@@ -23,6 +21,7 @@ class ChessDetection():
     def __init__(self):
         self.board = chess.Board()
         self.board_matrix = None
+        self.board_corners= None
 
     def calibrate_board(self, bmp):
         # 1st calibration image - blank board
@@ -46,9 +45,7 @@ class ChessDetection():
 
         #decode from base64
         img = self.decodeImage(bmp)
-
-        cv2.imwrite('./calibration/empty-board.jpg', img)
-
+        #cv2.imwrite('./calibration/empty-board.jpg', img)
         # final corner detection
         corners, calib_img1 = self.get_chessboard_corners(img)
 
@@ -59,18 +56,18 @@ class ChessDetection():
             raise False
         else:
             # save corners
-            np.save('./calibration/corners.npy', corners)
-
+            #np.save('./calibration/corners.npy', corners)
+            self.board_corners=corners
             # save projected blank board
             board_img = self.project_board(calib_img1, corners)
             #square_colours = get_board_colours(board_img)
             board_img = self.label_squares(board_img)
-            cv2.imwrite('./calibration/empty-board-projected.jpg', board_img)
+            #cv2.imwrite('./calibration/empty-board-projected.jpg', board_img)
 
             print('Calibration step 1 completed - corners detected and saved')
         return True
 
-    def label_squares(board_img, recom_move=None, alpha=0.2):
+    def label_squares(self, board_img, recom_move=None, alpha=0.2):
         """
         Overlay chess coordinates onto board image
         """
@@ -102,7 +99,7 @@ class ChessDetection():
 
         return board_img
 
-    def project_board(img, corners):
+    def project_board(self, img, corners):
         """
         Takes a raw image and projects the squares within the cropped board.
         Input:
@@ -173,7 +170,7 @@ class ChessDetection():
 
         return board_img
 
-    def get_chessboard_corners(img, draw_corners=False):
+    def get_chessboard_corners(self, img, draw_corners=False):
             """
             From OpenCV documentation
             """
@@ -181,7 +178,6 @@ class ChessDetection():
 
             # termination criteria
             criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-
             # find the corners
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             ret, corners = cv2.findChessboardCorners(gray, (w, w), None)
@@ -410,7 +406,8 @@ class ChessDetection():
         # 2nd calibration image - starting board
         # load corners
         try:
-            corners = np.load('./calibration/corners.npy')
+            #corners = np.load('./calibration/corners.npy')
+            corners=self.board_corners
         except:
             raise Exception('Calibration step 1 not run yet')
 
@@ -422,14 +419,14 @@ class ChessDetection():
         # performance
         result=fit_performance(calib_img2, piece_model, presence_model)
 
-        with open('./calibration/piece_model.pkl', 'wb') as f:
-            pickle.dump(piece_model, f)
-        with open('./calibration/presence_model.pkl', 'wb') as f:
-            pickle.dump(presence_model, f)
+        #with open('./calibration/piece_model.pkl', 'wb') as f:
+            #pickle.dump(piece_model, f)
+        #with open('./calibration/presence_model.pkl', 'wb') as f:
+            #pickle.dump(presence_model, f)
         print('Piece model trained and saved')
 
         # save second board calibration image
-        cv2.imwrite('./calibration/starting-board-projected.jpg', calib_img2)
+        #cv2.imwrite('./calibration/starting-board-projected.jpg', calib_img2)
 
         print('Calibration step 2 completed')
         return result

@@ -14,6 +14,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import java.io.ByteArrayOutputStream
 import java.util.*
@@ -22,25 +23,31 @@ import java.util.concurrent.TimeUnit
 
 
 private const val PERMISSION_REQUEST_CODE = 200
+private const val CALIBRATE_BOARD = 0
+private const val CALIBRATE_PIECES = 1
+private const val GAME_CHECKING = 2
 
 private enum class Player(val player: String){
     WHITE("White"),BLACK("Black")
 }
 
 class GameActivity : AppCompatActivity(), View.OnClickListener{
-
     private var pview: PreviewView? = null
     private var imview: ImageView? = null
     private var imageCapt: ImageCapture? = null
     private var analysis_on = false
     var textViewBlack: TextView? = null
     var textViewWhite: TextView? = null
+    var textViewResult: TextView? = null
     lateinit var countdown_timer_Black: CountDownTimer
     lateinit var countdown_timer_White: CountDownTimer
     var time_in_milli_seconds = 0L
     private var handDetector : HandDetector? = null
     private var startGameButton : Button? = null
     private var turn : Player= Player.WHITE
+    private var py = Python.getInstance()
+    private var pyobj = py.getModule("chessDetection").callAttr("ChessDetection")
+    private var step= CALIBRATE_BOARD
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,10 +65,11 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
 
         pview = findViewById(R.id.previewView)
 
-        imview = findViewById(R.id.imageView)
+        //imview = findViewById(R.id.imageView)
 
         textViewBlack = findViewById(R.id.textView_countdown_Black)
         textViewWhite = findViewById(R.id.textView_countdown_White)
+        textViewResult = findViewById(R.id.textView_result)
         //picture_bt.setOnClickListener(this)
         analysis_bt!!.setOnClickListener(this)
         this.analysis_on = false
@@ -105,10 +113,22 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
 
     private fun startGame() {
 
-        var end = false
-        val py = Python.getInstance()
+        if(step == CALIBRATE_BOARD){
+            if(calibrateBoard()){
+                textViewResult?.setText("Calibrazione scacchiera completata: " +
+                                        "inserisci i pezzi e premi di nuovo START per iniziare la partita")
+                step= GAME_CHECKING
+            }
+            else{
+                textViewResult?.setText("Errore durante la calibrazione: " +
+                                        "premi di nuovo START per riprovare")
+            }
+        }
+        /*else if(step == CALIBRATE_PIECES){
 
-        if (calibrateBoard(py)) {
+        }*/
+        else if(step == GAME_CHECKING){
+            var end = false
             while (!end){ // parte la partita
 
                 println("entro nel ciclo ciclo")
@@ -119,7 +139,31 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
                 Thread.sleep(2000)
 
                 // codice per invocare la parte di python
-                val result = checkGame(py)
+                val result = checkGame()
+
+                // valutare result
+                if (result == "Fine") { // stringa fine di python
+                    end = true
+                }
+
+                switchPlayer()
+            }
+        }
+        /*var end = false
+
+
+        if (calibrateBoard()) {
+            while (!end){ // parte la partita
+
+                println("entro nel ciclo ciclo")
+
+                while (!handDetector!!.isMoveDetected())
+                    sendBitmapToDetector()
+
+                Thread.sleep(2000)
+
+                // codice per invocare la parte di python
+                val result = checkGame()
 
                 // valutare result
                 if (result == "Fine") { // stringa fine di python
@@ -131,21 +175,19 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
         }
         else {
             // errore
-        }
+        }*/
 
     }
 
-    private fun calibrateBoard(py:Python): Boolean {
+    private fun calibrateBoard(): Boolean {
         // calibrate board
-        val pyobj = py.getModule("chessDetection").callAttr("ChessDetection")
         val currentBoardImage= pview!!.bitmap
         val convertedBoardImage= convertBitmap(currentBoardImage)
         val obj = pyobj.callAttr("calibrate_board", convertedBoardImage)
         return obj.toBoolean()
     }
 
-    private fun checkGame(py:Python): String {
-        val pyobj = py.getModule("chessDetection").callAttr("ChessDetection")
+    private fun checkGame(): String {
         val currentBoardImage= pview!!.bitmap
         val convertedBoardImage= convertBitmap(currentBoardImage)
         val obj = pyobj.callAttr("game_checking", convertedBoardImage, turn.player)

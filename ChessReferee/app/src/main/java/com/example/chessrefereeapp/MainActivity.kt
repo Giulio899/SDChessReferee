@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.EditText
 import android.widget.TextView
 import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 
 class MainActivity : AppCompatActivity() {
 
@@ -16,8 +17,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
 
-        val py = Python.getInstance()
-        val pyobj = py.getModule("prova").callAttr("Counter")
+        if(!Python.isStarted()){
+            Python.start( AndroidPlatform(this))
+        }
+
+        /*val pyobj = py.getModule("prova").callAttr("Counter")
         val obj = pyobj.callAttr("get")
         val obj2 = pyobj.callAttr("plus")
         val obj3 = pyobj.callAttr("get")
@@ -26,7 +30,7 @@ class MainActivity : AppCompatActivity() {
         text.setText(obj.toString())
 
         val text2 = findViewById<TextView>(R.id.provapy2)
-        text2.setText(obj3.toString())
+        text2.setText(obj3.toString())*/
     }
 
     fun startGame(view: View) {
