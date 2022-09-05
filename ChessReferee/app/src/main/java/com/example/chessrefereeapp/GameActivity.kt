@@ -31,7 +31,7 @@ private enum class Player(val player: String){
     WHITE("White"),BLACK("Black")
 }
 
-class GameActivity : AppCompatActivity(), View.OnClickListener{
+class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
     private var pview: PreviewView? = null
     private var imview: ImageView? = null
     private var imageCapt: ImageCapture? = null
@@ -48,7 +48,7 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
     private var py = Python.getInstance()
     private var pyobj = py.getModule("chessDetection").callAttr("ChessDetection")
     private var step= CALIBRATE_BOARD
-
+    private var calibrateButton: Button?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,7 +61,7 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
         startTimer(turn)
 
         //var picture_bt = findViewById<Button>(R.id.picture_bt)
-        var analysis_bt = findViewById<Button>(R.id.analysis_bt)
+
 
         pview = findViewById(R.id.previewView)
 
@@ -71,7 +71,6 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
         textViewWhite = findViewById(R.id.textView_countdown_White)
         textViewResult = findViewById(R.id.textView_result)
         //picture_bt.setOnClickListener(this)
-        analysis_bt!!.setOnClickListener(this)
         this.analysis_on = false
 
 
@@ -89,7 +88,13 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
         handDetector= HandDetector(this)
 
         startGameButton= findViewById(R.id.startGame)
+        calibrateButton=findViewById(R.id.calibrate_bt)
 
+        disableButton(startGameButton)
+
+        calibrateButton!!.setOnClickListener {
+            calibrate_board()
+        }
         startGameButton!!.setOnClickListener {
 
             startGame()
@@ -110,10 +115,33 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
             turn = Player.WHITE
 
     }
+    private fun disableButton(button: Button?) {
+        button!!.isEnabled = false
+        button.isClickable=false
+        //calibrateButton?.setBackgroundColor(R.color.black)
+        //calibrateButton?.setBackgroundColor(ContextCompat.getColor(textView.context, R.color.greyish))
+    }
+    private fun enableButton(button: Button?) {
+        button!!.isEnabled = true
+        button.isClickable=true
+        //calibrateButton?.setBackgroundColor(R.color.black)
+        //calibrateButton?.setBackgroundColor(ContextCompat.getColor(textView.context, R.color.greyish))
+    }
+    private fun calibrate_board(){
+        if(calibrateBoard()){
+            textViewResult?.text="Calibrazione scacchiera completata inserisci i pezzi e premi START  per iniziare la partita"
+            disableButton(calibrateButton)
+            enableButton(startGameButton)
+            step= GAME_CHECKING
 
+        }
+        else{
+            textViewResult?.text= "Errore durante la calibrazione: premi di nuovo CALIBRATE per riprovare"
+        }
+    }
     private fun startGame() {
 
-        if(step == CALIBRATE_BOARD){
+        /*if(step == CALIBRATE_BOARD){
             if(calibrateBoard()){
                 textViewResult?.setText("Calibrazione scacchiera completata: " +
                                         "inserisci i pezzi e premi di nuovo START per iniziare la partita")
@@ -123,16 +151,20 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
                 textViewResult?.setText("Errore durante la calibrazione: " +
                                         "premi di nuovo START per riprovare")
             }
-        }
+        }*/
         /*else if(step == CALIBRATE_PIECES){
 
         }*/
-        else if(step == GAME_CHECKING){
+        if(step == GAME_CHECKING){
             var end = false
+            var first_calibration_pieces=false
             while (!end){ // parte la partita
 
                 println("entro nel ciclo ciclo")
-
+                if(!first_calibration_pieces) {
+                    checkGame()
+                    first_calibration_pieces = true
+                }
                 while (!handDetector!!.isMoveDetected())
                     sendBitmapToDetector()
 
@@ -144,10 +176,10 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
                 // valutare result
                 if (result == "Fine") { // stringa fine di python
                     end = true
-                    textViewResult?.setText("FINE PARTITA")
+                    textViewResult?.text= "FINE PARTITA"
                 }
                 //pop up che mostra la mossa
-                Toast.makeText(this,"Mossa fatta " + result, Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Mossa fatta $result", Toast.LENGTH_LONG).show()
                 /*textViewResult?.setText("Mossa fatta: " +
                                         result)*/
                 switchPlayer()
@@ -291,7 +323,7 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
                     }
 
                     override fun onFinish() {
-                        textViewWhite?.setText("STOP")
+                        textViewWhite?.text = "STOP"
                     }
                 }
                 countdown_timer_White.start()
@@ -310,7 +342,7 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
                     }
 
                     override fun onFinish() {
-                        textViewBlack?.setText("STOP")
+                        textViewBlack?.text = "STOP"
                     }
                 }
                 countdown_timer_Black.start()
@@ -382,13 +414,13 @@ class GameActivity : AppCompatActivity(), View.OnClickListener{
 
         return ContextCompat.getMainExecutor(this)
     }
-    override fun onClick(view: View) {
+    /*override fun onClick(view: View) {
         when (view.id) {
 
             R.id.analysis_bt -> analysis_on = !analysis_on
 
         }
-    }
+    }*/
 
     /*private fun capturePhoto() {
         //Es. SISDIG_2021127_189230.jpg

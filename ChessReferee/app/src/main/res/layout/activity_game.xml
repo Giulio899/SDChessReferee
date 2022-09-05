@@ -53,7 +53,7 @@
             android:id="@+id/textView_result"
             android:layout_width="match_parent"
             android:layout_height="46dp"
-            android:text="Inquadra la scacchiera e premi START per continuare" />
+            android:text="Inquadra la scacchiera e premi CALIBRATE per continuare" />
 
         <!--<ImageView
             android:id="@+id/imageView"
@@ -83,11 +83,11 @@
                 android:text="START" />
 
             <Button
-                android:id="@+id/analysis_bt"
+                android:id="@+id/calibrate_bt"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Do something" />
+                android:text="Calibrate" />
 
         </LinearLayout>
 
