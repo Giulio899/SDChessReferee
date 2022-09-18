@@ -456,6 +456,8 @@ class ChessDetection():
             print(self.board)            
             start=None
             end=None
+            old_pos = []
+            new_pos = []
             
             #castling
             casteled=False
@@ -471,6 +473,7 @@ class ChessDetection():
                     print("RE mosso")
                     if(current_board[r][ord('h')-97]=="0" and self.board_matrix[r][ord('h')-97]!="0"):
                         detected_move="e"+str(r+1)+"g"+str(r+1)
+                        # double update, how?
                         print("Arrocco corto...")
                         casteled=True
                     elif(current_board[r][ord('a')-97]=="0" and self.board_matrix[r][ord('a')-97]!="0"):
@@ -485,15 +488,17 @@ class ChessDetection():
                         if(current_board[row][column]!=self.board_matrix[row][column]):
                             print(current_board[row][column]+" "+self.board_matrix[row][column])
                             if(current_board[row][column]=="0"):
+                                old_pos = [row, column]
                                 start=chr(97+column)+str(row+1)
                                 print(start)
                             else:
+                                new_pos = [row, column]
                                 end=chr(97+column)+str(row+1)
                                 print(end)
                 if(start==None or end==None):
                     print("No moves detected")
                 else:
-                    detected_move=start+end
+                    detected_move=start+"/"+end
             if(detected_move==None):
                 detected_move = "No moves detected"
                 print(detected_move)
@@ -501,7 +506,8 @@ class ChessDetection():
                 print("Move detected: "+detected_move)
                 move = chess.Move.from_uci(detected_move)
                 self.board.push(move)
-                self.board_matrix=current_board
+                #self.board_matrix = current_board
+                self.updateBoardMatrix(player, old_pos, new_pos)
             else:
                 detected_move = "Illegal Move: armetti a posto" 
                 print(detected_move)    
@@ -520,3 +526,27 @@ class ChessDetection():
         pil_im.save(buff,format="PNG")
         img_str = base64.b64encode(buff.getvalue())
         return "" + str(img_str, 'utf-8')
+
+
+    # def updateBoardMatrix(self, player , detected_move):
+    #     pos = detected_move.split("/")
+    #     # ord(column) - 97 -> column number
+    #     # row - 1 -> row number
+    #     old_pos = pos[0]
+    #     new_pos = pos[1]
+    #     old_col = ord(old_pos[0]) - 97
+    #     old_row = old_pos[1] - 1
+    #     new_col = ord(new_pos[0]) - 97
+    #     new_row = new_pos[1] - 1 
+    #     self.board_matrix[old_row][old_col] = "0"
+    #     if (player == "White"):
+    #         self.board_matrix[new_row][new_col] = "1"
+    #     elif (player == "Black"):
+    #         self.board_matrix[new_row][new_col] = "2"    
+
+    def updateBoardMatrix(self, player , old_pos, new_pos):
+        self.board_matrix[old_pos[0], old_pos[1]]
+        if (player == "White"):
+            self.board_matrix[new_pos[0]][new_pos[1]] = "1"
+        elif (player == "Black"):
+            self.board_matrix[new_pos[0]][new_pos[1]] = "2"    

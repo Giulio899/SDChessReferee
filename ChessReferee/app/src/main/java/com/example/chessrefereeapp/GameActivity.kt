@@ -41,6 +41,8 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
     var textViewResult: TextView? = null
     lateinit var countdown_timer_Black: CountDownTimer
     lateinit var countdown_timer_White: CountDownTimer
+    var remaining_time_white = 0L
+    var remaining_time_black = 0L
     var time_in_milli_seconds = 0L
     private var handDetector : HandDetector? = null
     private var startGameButton : Button? = null
@@ -58,10 +60,10 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
             System.out.println("Nope nope")
             requestPermission()
         }
-        startTimer(turn)
 
         //var picture_bt = findViewById<Button>(R.id.picture_bt)
 
+        initTimer()
 
         pview = findViewById(R.id.previewView)
 
@@ -72,8 +74,6 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
         textViewResult = findViewById(R.id.textView_result)
         //picture_bt.setOnClickListener(this)
         this.analysis_on = false
-
-
 
         var provider = ProcessCameraProvider.getInstance(this)
         provider.addListener({
@@ -140,7 +140,7 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
         }
     }
     private fun startGame() {
-
+        startTimer()
         /*if(step == CALIBRATE_BOARD){
             if(calibrateBoard()){
                 textViewResult?.setText("Calibrazione scacchiera completata: " +
@@ -183,6 +183,7 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
                 /*textViewResult?.setText("Mossa fatta: " +
                                         result)*/
                 switchPlayer()
+                switchTimer()
             }
         }
         /*var end = false
@@ -286,7 +287,62 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
         return hhToMillis + mmToMillis + ssToMillis;
     }
 
-    private fun startTimer(player: Player){
+    private fun initTimer() {
+        // get time from input
+        val initValueTimer=intent.extras?.get("EditTextTime").toString()
+        val mm = initValueTimer.toLong()
+        val mmToMillis = TimeUnit.MINUTES.toMillis(mm)
+        remaining_time_black = mmToMillis
+        remaining_time_white = mmToMillis
+        countdown_timer_White = object : CountDownTimer(remaining_time_white, 1000) {
+
+            // Callback function, fired on regular interval
+            override fun onTick(millisUntilFinished: Long) {
+                remaining_time_white = millisUntilFinished
+                updateTextUI(Player.WHITE)
+            }
+
+            override fun onFinish() {
+                textViewWhite?.text = "STOP"
+            }
+        }
+        countdown_timer_Black = object : CountDownTimer(remaining_time_black, 1000) {
+
+            // Callback function, fired on regular interval
+            override fun onTick(millisUntilFinished: Long) {
+                remaining_time_black = millisUntilFinished
+                updateTextUI(Player.BLACK)
+
+            }
+
+            override fun onFinish() {
+                textViewBlack?.text = "STOP"
+            }
+        }
+        // assign time to both countdownBlack/white
+    }
+
+    private fun switchTimer() {
+        /*
+        when (turn) {
+            Player.WHITE -> {
+                // save time remaining? or remaining time is enough
+                countdown_timer_Black.cancel()
+                countdown_timer_White.start()
+            }
+            Player.BLACK -> {
+                countdown_timer_White.cancel()
+                countdown_timer_Black.start()
+            }
+        }
+        */
+        // oppure
+        pauseTimer()
+        startTimer()
+    }
+
+    private fun startTimer(){
+        /*
         val initValueTimer=intent.extras?.get("EditTextTime").toString()
         if(initValueTimer.isBlank()) {
             Toast.makeText(this,"Error: Please digit time value!", Toast.LENGTH_LONG).show()
@@ -308,10 +364,11 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
         }
 
         time_in_milli_seconds = checkTokens(tokens[0],tokens[1],tokens[2])
-        when (player){
+        */
+        when (turn){
             Player.WHITE -> {
 
-
+                /*
                 countdown_timer_White = object : CountDownTimer(time_in_milli_seconds, 1000) {
 
                     // Callback function, fired on regular interval
@@ -326,12 +383,13 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
                         textViewWhite?.text = "STOP"
                     }
                 }
+                */
                 countdown_timer_White.start()
 
             }
             Player.BLACK -> {
 
-
+                /*
                 countdown_timer_Black = object : CountDownTimer(time_in_milli_seconds, 1000) {
 
                     // Callback function, fired on regular interval
@@ -345,6 +403,7 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
                         textViewBlack?.text = "STOP"
                     }
                 }
+                */
                 countdown_timer_Black.start()
 
             }
@@ -355,8 +414,8 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
 
     }
 
-    private fun pauseTimer(player: Player){
-        when(player){
+    private fun pauseTimer(){
+        when(turn){
             Player.BLACK -> countdown_timer_White.cancel()
             Player.WHITE-> countdown_timer_Black.cancel()
         }
