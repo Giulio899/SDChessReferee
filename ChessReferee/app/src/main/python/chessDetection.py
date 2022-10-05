@@ -438,6 +438,15 @@ class ChessDetection():
 
         if(self.board_matrix == None):
             self.board_matrix = self.calibrate_pieces(img)
+            #self.board_matrix=[ ["1","1","1","1","1","1","1","1"],
+                            #["1","1","1","1","1","1","1","1"],
+              #              ["0","0","0","0","0","0","0","0"],
+               #              ["0","0","0","0","0","0","0","0"],
+               #              ["0","0","0","0","0","0","0","0"],
+               #              ["0","0","0","0","0","0","0","0"],
+               #              ["2","2","2","2","2","2","2","2"],
+               #              ["2","2","2","2","2","2","2","2"]]
+
             detected_move = "START"
             print(self.board_matrix)
             return detected_move
@@ -498,7 +507,7 @@ class ChessDetection():
                 if(start==None or end==None):
                     print("No moves detected")
                 else:
-                    detected_move=start+"/"+end
+                    detected_move=start+end
             if(detected_move==None):
                 detected_move = "No moves detected"
                 print(detected_move)
@@ -507,10 +516,16 @@ class ChessDetection():
                 move = chess.Move.from_uci(detected_move)
                 self.board.push(move)
                 #self.board_matrix = current_board
+                #detected_move=start+"/"+end
                 self.updateBoardMatrix(player, old_pos, new_pos)
+
             else:
-                detected_move = "Illegal Move: armetti a posto" 
-                print(detected_move)    
+                wrongMoves = detected_move
+                detected_move = f'Illegal Move: mossa riconosciuta= {wrongMoves}; armetti a posto'
+
+                print(detected_move)
+
+
         return detected_move
 
     def decodeImage(self, bitmap):
@@ -545,7 +560,7 @@ class ChessDetection():
     #         self.board_matrix[new_row][new_col] = "2"    
 
     def updateBoardMatrix(self, player , old_pos, new_pos):
-        self.board_matrix[old_pos[0], old_pos[1]]
+        self.board_matrix[old_pos[0]][old_pos[1]] = "0"
         if (player == "White"):
             self.board_matrix[new_pos[0]][new_pos[1]] = "1"
         elif (player == "Black"):

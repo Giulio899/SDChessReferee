@@ -141,6 +141,7 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
     }
     private fun startGame() {
         startTimer()
+
         /*if(step == CALIBRATE_BOARD){
             if(calibrateBoard()){
                 textViewResult?.setText("Calibrazione scacchiera completata: " +
@@ -163,6 +164,7 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
                 println("entro nel ciclo ciclo")
                 if(!first_calibration_pieces) {
                     checkGame()
+                    textViewResult?.text="Calibrazione pezzi completata"
                     first_calibration_pieces = true
                 }
                 while (!handDetector!!.isMoveDetected())
@@ -294,6 +296,8 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
         val mmToMillis = TimeUnit.MINUTES.toMillis(mm)
         remaining_time_black = mmToMillis
         remaining_time_white = mmToMillis
+        textViewBlack?.text = remaining_time_black.toString()
+        textViewWhite?.text = remaining_time_white.toString()
         countdown_timer_White = object : CountDownTimer(remaining_time_white, 1000) {
 
             // Callback function, fired on regular interval

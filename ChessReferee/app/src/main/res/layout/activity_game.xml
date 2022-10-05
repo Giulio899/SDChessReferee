@@ -15,13 +15,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
         <TextView
             android:id="@+id/textView_countdown_Black"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="@style/Base.TextAppearance.AppCompat.Large"
-            android:textSize="34sp"
+            android:textSize="45sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
@@ -39,11 +42,12 @@
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="TextView" />
+        </LinearLayout>
 
         <androidx.camera.view.PreviewView
             android:id="@+id/previewView"
             android:layout_width="match_parent"
-            android:layout_height="474dp"
+            android:layout_height="350dp"
             android:layout_weight="90">
 
 
@@ -63,7 +67,7 @@
             tools:srcCompat="@tools:sample/avatars" />-->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="146dp"
+            android:layout_height="3dp"
             android:layout_weight="90"
             android:orientation="horizontal">
 
