@@ -27,16 +27,6 @@ class MainActivity : AppCompatActivity() {
             Python.start( AndroidPlatform(this))
         }
 
-        /*val pyobj = py.getModule("prova").callAttr("Counter")
-        val obj = pyobj.callAttr("get")
-        val obj2 = pyobj.callAttr("plus")
-        val obj3 = pyobj.callAttr("get")
-
-        val text = findViewById<TextView>(R.id.provapy)
-        text.setText(obj.toString())
-
-        val text2 = findViewById<TextView>(R.id.provapy2)
-        text2.setText(obj3.toString())*/
     }
 
     fun startGame(view: View) {

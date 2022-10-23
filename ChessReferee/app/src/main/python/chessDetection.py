@@ -438,14 +438,14 @@ class ChessDetection():
 
         if(self.board_matrix == None):
             self.board_matrix = self.calibrate_pieces(img)
-            #self.board_matrix=[ ["1","1","1","1","1","1","1","1"],
-                            #["1","1","1","1","1","1","1","1"],
-              #              ["0","0","0","0","0","0","0","0"],
-               #              ["0","0","0","0","0","0","0","0"],
-               #              ["0","0","0","0","0","0","0","0"],
-               #              ["0","0","0","0","0","0","0","0"],
-               #              ["2","2","2","2","2","2","2","2"],
-               #              ["2","2","2","2","2","2","2","2"]]
+            self.board_matrix=[["1","1","1","1","1","1","1","1"],
+                                ["1","1","1","1","1","1","1","1"],
+                                ["0","0","0","0","0","0","0","0"],
+                                ["0","0","0","0","0","0","0","0"],
+                                ["0","0","0","0","0","0","0","0"],
+                                ["0","0","0","0","0","0","0","0"],
+                                ["2","2","2","2","2","2","2","2"],
+                                ["2","2","2","2","2","2","2","2"]]
 
             detected_move = "START"
             print(self.board_matrix)
@@ -463,8 +463,9 @@ class ChessDetection():
             current_board = self.calibrate_pieces(img)
             legal_moves = [x.uci() for x in self.board.legal_moves]
             print(self.board)            
-            start=None
-            end=None
+            start=[]
+            end=[]
+            fatto=False
             old_pos = []
             new_pos = []
             
@@ -498,31 +499,34 @@ class ChessDetection():
                             print(current_board[row][column]+" "+self.board_matrix[row][column])
                             if(current_board[row][column]=="0"):
                                 old_pos = [row, column]
-                                start=chr(97+column)+str(row+1)
+                                start.append(chr(97+column)+str(row+1))
                                 print(start)
                             else:
                                 new_pos = [row, column]
-                                end=chr(97+column)+str(row+1)
+                                end.append(chr(97+column)+str(row+1))
                                 print(end)
-                if(start==None or end==None):
+                if(not start or not end):
                     print("No moves detected")
                 else:
-                    detected_move=start+end
+                    for item in start:
+                        for item2 in end:
+                            if str(item) + str(item2) in legal_moves:
+                                fatto=True
+                                detected_move=str(item) + str(item2)
+                                print("Move detected: "+detected_move)
+                                move = chess.Move.from_uci(detected_move)
+                                self.board.push(move)
+                                detected_move=str(item) +"/"+ str(item2)
+                                #self.board_matrix = current_board
+                                #detected_move=start+"/"+end
+                                self.updateBoardMatrix(player, old_pos, new_pos)
+                                break
             if(detected_move==None):
                 detected_move = "No moves detected"
                 print(detected_move)
-            elif((detected_move) in legal_moves):
-                print("Move detected: "+detected_move)
-                move = chess.Move.from_uci(detected_move)
-                self.board.push(move)
-                #self.board_matrix = current_board
-                #detected_move=start+"/"+end
-                self.updateBoardMatrix(player, old_pos, new_pos)
-
-            else:
+            elif not fatto:
                 wrongMoves = detected_move
                 detected_move = f'Illegal Move: mossa riconosciuta= {wrongMoves}; armetti a posto'
-
                 print(detected_move)
 
 

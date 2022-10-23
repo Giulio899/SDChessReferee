@@ -2,6 +2,8 @@ package com.example.chessrefereeapp
 
 import android.app.Activity
 import android.graphics.Bitmap
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import com.google.mediapipe.solutions.hands.Hands
 import com.google.mediapipe.solutions.hands.HandsOptions
 import com.google.mediapipe.solutions.hands.HandsResult
@@ -20,23 +22,23 @@ class HandDetector(private var activity: Activity?) {
             .build()
     )
 
-    private var handDetected: Boolean = false
+    private var handDetected :Boolean=false
     private var currentHandsResult: HandsResult? = null
+
 
 
 
     init {
         requireNotNull(activity)
         setResultListenerHand()
+
     }
 
 
 
     fun processBitmap(inputBitmap: Bitmap?) {
 
-        //println("INPUT BITMAP CORRENTE ${inputBitmap.toString()}")
         hands!!.send(inputBitmap)
-
 
     }
 
@@ -50,7 +52,6 @@ class HandDetector(private var activity: Activity?) {
 
 
     }
-
 
     fun isMoveDetected(): Boolean {
 

@@ -3,19 +3,22 @@ package com.example.chessrefereeapp
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.os.Bundle
-import android.os.CountDownTimer
+import android.os.*
 import android.view.View
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import com.example.chessrefereeapp.ui.controller.ChessBoardAdapter
+import com.example.chessrefereeapp.ui.controller.ChessBoardController
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.chaquo.python.PyObject
 import com.chaquo.python.Python
+import com.example.chessrefereeapp.timer.CountDownTimerWithPause
 import java.io.ByteArrayOutputStream
 import java.util.*
 import java.util.concurrent.Executor
@@ -31,7 +34,7 @@ private enum class Player(val player: String){
     WHITE("White"),BLACK("Black")
 }
 
-class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
+class GameActivity : AppCompatActivity(),ImageAnalysis.Analyzer /*, View.OnClickListener*/{
     private var pview: PreviewView? = null
     private var imview: ImageView? = null
     private var imageCapt: ImageCapture? = null
@@ -39,19 +42,25 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
     var textViewBlack: TextView? = null
     var textViewWhite: TextView? = null
     var textViewResult: TextView? = null
-    lateinit var countdown_timer_Black: CountDownTimer
-    lateinit var countdown_timer_White: CountDownTimer
+    //lateinit var countdown_timer_Black: CountDownTimer
+    //lateinit var countdown_timer_White: CountDownTimer
+    //modifiche lorenzo
+    lateinit var countdown_timer_Black: CountDownTimerWithPause
+    lateinit var countdown_timer_White: CountDownTimerWithPause
     var remaining_time_white = 0L
     var remaining_time_black = 0L
-    var time_in_milli_seconds = 0L
+    private lateinit var chessBoardView: GridView
     private var handDetector : HandDetector? = null
     private var startGameButton : Button? = null
+    private var switch_bt : Button? = null
     private var turn : Player= Player.WHITE
     private var py = Python.getInstance()
     private var pyobj = py.getModule("chessDetection").callAttr("ChessDetection")
     private var step= CALIBRATE_BOARD
     private var calibrateButton: Button?=null
-
+    private var controller: ChessBoardController? =null
+    private var adapter: ChessBoardAdapter? =null
+    private var currentBoardImage : Bitmap?=null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
@@ -61,18 +70,11 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
             requestPermission()
         }
 
-        //var picture_bt = findViewById<Button>(R.id.picture_bt)
-
         initTimer()
-
-        pview = findViewById(R.id.previewView)
-
-        //imview = findViewById(R.id.imageView)
-
+        pview = findViewById<PreviewView>(R.id.previewView)
+        chessBoardView = findViewById(R.id.chessBoard)
         textViewBlack = findViewById(R.id.textView_countdown_Black)
         textViewWhite = findViewById(R.id.textView_countdown_White)
-        textViewResult = findViewById(R.id.textView_result)
-        //picture_bt.setOnClickListener(this)
         this.analysis_on = false
 
         var provider = ProcessCameraProvider.getInstance(this)
@@ -89,132 +91,144 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
 
         startGameButton= findViewById(R.id.startGame)
         calibrateButton=findViewById(R.id.calibrate_bt)
-
+        switch_bt=findViewById<Button>(R.id.switch_button)
         disableButton(startGameButton)
+        controller= ChessBoardController()
+        adapter = ChessBoardAdapter(this, controller!!.get_board_as_List())
+        chessBoardView.adapter = adapter
+
 
         calibrateButton!!.setOnClickListener {
             calibrate_board()
         }
         startGameButton!!.setOnClickListener {
-
-            startGame()
+            Thread(Runnable {
+                startGame()
+            }).start()
+        }
+        switch_bt!!.setOnClickListener {
+            if(chessBoardView.visibility== View.VISIBLE){
+                chessBoardView.visibility= View.INVISIBLE
+                pview!!.visibility=View.VISIBLE
+            }else if(pview!!.visibility==View.VISIBLE){
+                chessBoardView.visibility= View.VISIBLE
+                pview!!.visibility=View.INVISIBLE
+            }
 
         }
 
-
-    }
-    private fun sendBitmapToDetector(){
-
-        handDetector!!.processBitmap(pview!!.bitmap)
     }
 
+    private fun sendBitmapToDetector(bitmap: Bitmap){
+
+        handDetector!!.processBitmap(bitmap)
+    }
     private fun switchPlayer(){
         if(turn == Player.WHITE)
-            turn= Player.BLACK
-        else if(turn== Player.BLACK)
+            turn = Player.BLACK
+        else if(turn == Player.BLACK)
             turn = Player.WHITE
 
     }
     private fun disableButton(button: Button?) {
         button!!.isEnabled = false
         button.isClickable=false
-        //calibrateButton?.setBackgroundColor(R.color.black)
-        //calibrateButton?.setBackgroundColor(ContextCompat.getColor(textView.context, R.color.greyish))
+
+
     }
     private fun enableButton(button: Button?) {
         button!!.isEnabled = true
         button.isClickable=true
-        //calibrateButton?.setBackgroundColor(R.color.black)
-        //calibrateButton?.setBackgroundColor(ContextCompat.getColor(textView.context, R.color.greyish))
+
+
     }
     private fun calibrate_board(){
+
         if(calibrateBoard()){
-            textViewResult?.text="Calibrazione scacchiera completata inserisci i pezzi e premi START  per iniziare la partita"
             disableButton(calibrateButton)
             enableButton(startGameButton)
             step= GAME_CHECKING
-
+            Toast.makeText(this,"Calibrazione scacchiera completata inserisci i pezzi e premi START  per iniziare la partita",Toast.LENGTH_LONG).show()
         }
         else{
-            textViewResult?.text= "Errore durante la calibrazione: premi di nuovo CALIBRATE per riprovare"
+
+            Toast.makeText(this,"Errore durante la calibrazione: premi di nuovo CALIBRATE per riprovare",Toast.LENGTH_LONG).show()
+
         }
+        //mock behavior
+        /*disableButton(calibrateButton)
+        enableButton(startGameButton)
+        step= GAME_CHECKING*/
     }
+
+
     private fun startGame() {
-        startTimer()
 
-        /*if(step == CALIBRATE_BOARD){
-            if(calibrateBoard()){
-                textViewResult?.setText("Calibrazione scacchiera completata: " +
-                                        "inserisci i pezzi e premi di nuovo START per iniziare la partita")
-                step= GAME_CHECKING
-            }
-            else{
-                textViewResult?.setText("Errore durante la calibrazione: " +
-                                        "premi di nuovo START per riprovare")
-            }
-        }*/
-        /*else if(step == CALIBRATE_PIECES){
-
-        }*/
-        if(step == GAME_CHECKING){
-            var end = false
-            var first_calibration_pieces=false
-            while (!end){ // parte la partita
-
-                println("entro nel ciclo ciclo")
-                if(!first_calibration_pieces) {
-                    checkGame()
-                    textViewResult?.text="Calibrazione pezzi completata"
-                    first_calibration_pieces = true
-                }
-                while (!handDetector!!.isMoveDetected())
-                    sendBitmapToDetector()
-
-                Thread.sleep(2000)
-                //stoppare timer
-                // codice per invocare la parte di python
-                val result = checkGame()
-                //cambiare se tutto va bene il timer
-                // valutare result
-                if (result == "Fine") { // stringa fine di python
-                    end = true
-                    textViewResult?.text= "FINE PARTITA"
-                }
-                //pop up che mostra la mossa
-                Toast.makeText(this, "Mossa fatta $result", Toast.LENGTH_LONG).show()
-                /*textViewResult?.setText("Mossa fatta: " +
-                                        result)*/
-                switchPlayer()
-                switchTimer()
-            }
-        }
-        /*var end = false
+            startTimer()
 
 
-        if (calibrateBoard()) {
-            while (!end){ // parte la partita
+            if (step == GAME_CHECKING) {
 
-                println("entro nel ciclo ciclo")
+                var end = false
+                var first_calibration_pieces = false
+                //mock var index_move = 0
+                analysis_on=!analysis_on
+                // mock val moves = listOf<String>("d2/d4", "d7/d5", "f2/f4", "h7/h5","Fine"
+                runOnUiThread { disableButton(startGameButton)}
+                while (!end) { // parte la partita
+                     println("entro nel ciclo ciclo")
+                    if(!first_calibration_pieces) {
+                        val first_res = checkGame()
+                        analysis_on=!analysis_on
+                        if (first_res == "START") {
 
-                while (!handDetector!!.isMoveDetected())
-                    sendBitmapToDetector()
+                            runOnUiThread { Toast.makeText(
+                                this,
+                                "Calibrazione Pezzi Completata",
+                                Toast.LENGTH_LONG
+                            ).show()}
 
-                Thread.sleep(2000)
+                            first_calibration_pieces = true
+                            runOnUiThread { disableButton(startGameButton)}
 
-                // codice per invocare la parte di python
-                val result = checkGame()
+                        }
 
-                // valutare result
-                if (result == "Fine") { // stringa fine di python
-                    end = true
+                    }
+
+                    while(!handDetector!!.isMoveDetected()){}
+
+                    Thread.sleep(2000)
+                    // mock var result = moves[index_move]
+                    var result = checkGame()
+                    analysis_on=!analysis_on
+                    controller!!.move(result)
+                    runOnUiThread { adapter!!.notifyDataSetChanged() }
+                    controller!!.switchPlayer()
+                    /*controller!!.checkLiveData().observe(this, androidx.lifecycle.Observer {
+                        if (it == "CHECKMATE") {
+
+                            AlertDialog.Builder(this).setMessage("CHECKMATE !!").show()
+                            result = "Fine"
+                        } else {
+
+                            Toast.makeText(this, "CHECK!!", Toast.LENGTH_SHORT).show()
+
+                        }
+                    })*/
+                    if (result == "Fine") { // stringa fine di python
+                        end = true
+                        runOnUiThread { AlertDialog.Builder(this).setMessage("FINE PARTITA").show()}
+                        analysis_on=!analysis_on
+
+                    }
+                    switchPlayer()
+                    switchTimer()
+                    //mock index_move++
+
                 }
 
-                switchPlayer()
             }
-        }
-        else {
-            // errore
-        }*/
+
 
     }
 
@@ -227,7 +241,10 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
     }
 
     private fun checkGame(): String {
-        val currentBoardImage= pview!!.bitmap
+        analysis_on=!analysis_on
+        //val currentBoardImage= pview!!.bitmap
+        runOnUiThread { currentBoardImage=pview!!.bitmap }
+        Thread.sleep(1000)
         val convertedBoardImage= convertBitmap(currentBoardImage)
         val obj = pyobj.callAttr("game_checking", convertedBoardImage, turn.player)
         return obj.toString()
@@ -243,51 +260,19 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
         return Base64.getEncoder().encodeToString(imageAsByteArray)
     }
 
-
-
-    /*fun toGrayscale(bmpOriginal: Bitmap): Bitmap? {
-        val width: Int
-        val height: Int
-        height = bmpOriginal.height
-        width = bmpOriginal.width
-        val bmpGrayscale = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmpGrayscale)
-        val paint = Paint()
-        val cm = ColorMatrix()
-        cm.setSaturation(0f)
-        val f = ColorMatrixColorFilter(cm)
-        paint.setColorFilter(f)
-        c.drawBitmap(bmpOriginal, 0.0F, 0.0F, paint)
-        return bmpGrayscale
-    }*/
-
-    /*override fun analyze(image: ImageProxy) {
+    override fun analyze(image: ImageProxy) {
 
         if (analysis_on) {
 
+            var curr_bitmap= pview!!.bitmap
+            runOnUiThread {
+               sendBitmapToDetector(curr_bitmap!!)
+            }
 
-                imview!!.setImageBitmap(bitmap)
         }
         image.close()
-    }*/
-
-
-
-    private fun checkTokens(hhToken: String, mmToken: String, ssToken: String): Long {
-        val hh = hhToken.toLong()
-        val mm = mmToken.toLong()
-        val ss = ssToken.toLong()
-
-        if (hh !in 0..23 || mm !in 0..59 || ss !in 0..59) {
-            Toast.makeText(this, "Wrong time value!", Toast.LENGTH_LONG).show()
-            finish()
-
-        }
-        val hhToMillis = TimeUnit.HOURS.toMillis(hh)
-        val mmToMillis = TimeUnit.MINUTES.toMillis(mm)
-        val ssToMillis = TimeUnit.SECONDS.toMillis(ss)
-        return hhToMillis + mmToMillis + ssToMillis;
     }
+
 
     private fun initTimer() {
         // get time from input
@@ -296,11 +281,11 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
         val mmToMillis = TimeUnit.MINUTES.toMillis(mm)
         remaining_time_black = mmToMillis
         remaining_time_white = mmToMillis
-        textViewBlack?.text = remaining_time_black.toString()
-        textViewWhite?.text = remaining_time_white.toString()
-        countdown_timer_White = object : CountDownTimer(remaining_time_white, 1000) {
+        updateTextUI(Player.WHITE)
+        updateTextUI(Player.BLACK)
 
-            // Callback function, fired on regular interval
+        countdown_timer_White = object : CountDownTimerWithPause(remaining_time_white, 1000, false) {
+
             override fun onTick(millisUntilFinished: Long) {
                 remaining_time_white = millisUntilFinished
                 updateTextUI(Player.WHITE)
@@ -310,9 +295,8 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
                 textViewWhite?.text = "STOP"
             }
         }
-        countdown_timer_Black = object : CountDownTimer(remaining_time_black, 1000) {
 
-            // Callback function, fired on regular interval
+        countdown_timer_Black = object : CountDownTimerWithPause(remaining_time_black, 1000, false) {
             override fun onTick(millisUntilFinished: Long) {
                 remaining_time_black = millisUntilFinished
                 updateTextUI(Player.BLACK)
@@ -323,116 +307,57 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
                 textViewBlack?.text = "STOP"
             }
         }
-        // assign time to both countdownBlack/white
+        countdown_timer_White.create()
+        countdown_timer_Black.create()
+
+
     }
 
     private fun switchTimer() {
-        /*
-        when (turn) {
-            Player.WHITE -> {
-                // save time remaining? or remaining time is enough
-                countdown_timer_Black.cancel()
-                countdown_timer_White.start()
-            }
-            Player.BLACK -> {
-                countdown_timer_White.cancel()
-                countdown_timer_Black.start()
-            }
-        }
-        */
-        // oppure
+
         pauseTimer()
         startTimer()
     }
 
     private fun startTimer(){
-        /*
-        val initValueTimer=intent.extras?.get("EditTextTime").toString()
-        if(initValueTimer.isBlank()) {
-            Toast.makeText(this,"Error: Please digit time value!", Toast.LENGTH_LONG).show()
-            finish()
-            return
-        }
-        val tokens= initValueTimer.split(":")
 
-        if (tokens.count() != 3) {
-            Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
-            finish()
-            return
-        }
-
-        if(tokens[0].length != 2 || tokens[1].length != 2 || tokens[2].length != 2 ) {
-            Toast.makeText(this,"Error: Wrong time value --> pattern hh:mm:ss! ", Toast.LENGTH_LONG).show()
-            finish()
-            return
-        }
-
-        time_in_milli_seconds = checkTokens(tokens[0],tokens[1],tokens[2])
-        */
         when (turn){
             Player.WHITE -> {
 
-                /*
-                countdown_timer_White = object : CountDownTimer(time_in_milli_seconds, 1000) {
-
-                    // Callback function, fired on regular interval
-                    override fun onTick(millisUntilFinished: Long) {
-
-                        time_in_milli_seconds = millisUntilFinished
-                        updateTextUI(Player.WHITE)
-
-                    }
-
-                    override fun onFinish() {
-                        textViewWhite?.text = "STOP"
-                    }
-                }
-                */
-                countdown_timer_White.start()
-
+                countdown_timer_White.resume()
             }
             Player.BLACK -> {
 
-                /*
-                countdown_timer_Black = object : CountDownTimer(time_in_milli_seconds, 1000) {
+                countdown_timer_Black.resume()
 
-                    // Callback function, fired on regular interval
-                    override fun onTick(millisUntilFinished: Long) {
-                        time_in_milli_seconds = millisUntilFinished
-                        updateTextUI(Player.BLACK)
-
-                    }
-
-                    override fun onFinish() {
-                        textViewBlack?.text = "STOP"
-                    }
-                }
-                */
-                countdown_timer_Black.start()
 
             }
         }
-
-
-
 
     }
 
     private fun pauseTimer(){
         when(turn){
-            Player.BLACK -> countdown_timer_White.cancel()
-            Player.WHITE-> countdown_timer_Black.cancel()
+            Player.BLACK -> countdown_timer_White.pause()
+            Player.WHITE-> countdown_timer_Black.pause()
         }
 
     }
     private fun updateTextUI(player: Player) {
 
-        val hours=(time_in_milli_seconds / 1000) /3600
-        val minute = ((time_in_milli_seconds / 1000) % 3600)/ 60
-        val seconds = (time_in_milli_seconds / 1000) % 60
         when (player){
-            Player.BLACK -> textViewBlack?.text = String.format("%02d:%02d:%02d",hours,minute,seconds)
-            Player.WHITE -> textViewWhite?.text = String.format("%02d:%02d:%02d",hours,minute,seconds)
+            Player.BLACK -> {
+                val hours=(remaining_time_black / 1000) /3600
+                val minute = ((remaining_time_black / 1000) % 3600)/ 60
+                val seconds = (remaining_time_black / 1000) % 60
+                textViewBlack?.text = String.format("%02d:%02d:%02d",hours,minute,seconds)
+            }
+            Player.WHITE -> {
+                val hours=(remaining_time_white / 1000) /3600
+                val minute = ((remaining_time_white / 1000) % 3600)/ 60
+                val seconds = (remaining_time_white / 1000) % 60
+                textViewWhite?.text = String.format("%02d:%02d:%02d",hours,minute,seconds)
+            }
         }
 
     }
@@ -453,21 +378,22 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
         cameraProvider.unbindAll()
         val camSelector =
             CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
+
         var preview = Preview.Builder().build()
         preview.setSurfaceProvider(pview!!.surfaceProvider)
-        imageCapt =
+        /*imageCapt =
             ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .build()
-        /*var imageAn =
+                .build()*/
+        var imageAn =
             ImageAnalysis.Builder().setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
-        imageAn.setAnalyzer(getExecutor(), this)*/
+        imageAn.setAnalyzer(getExecutor(), this)
         cameraProvider.bindToLifecycle(
             (this as LifecycleOwner),
             camSelector,
             preview,
-            imageCapt,
-            //imageAn
+            //imageCapt,
+            imageAn
         )
     }
 
@@ -477,74 +403,9 @@ class GameActivity : AppCompatActivity()/*, View.OnClickListener*/{
 
         return ContextCompat.getMainExecutor(this)
     }
-    /*override fun onClick(view: View) {
-        when (view.id) {
 
-            R.id.analysis_bt -> analysis_on = !analysis_on
 
-        }
-    }*/
 
-    /*private fun capturePhoto() {
-        //Es. SISDIG_2021127_189230.jpg
-        val pictureName =
-            "SISDIG_" + SimpleDateFormat("yyyyMMdd_HHmmss").format(Date()).toString() + ".jpeg"
-        imageCapt!!.takePicture(
-            getExecutor(),
-            object : ImageCapture.OnImageCapturedCallback() {
-                override fun onCaptureSuccess(image: ImageProxy) {
-                    //Create the picture's metadata
-                    val newPictureDetails = ContentValues()
-                    newPictureDetails.put(MediaStore.Images.Media._ID, pictureName)
-                    newPictureDetails.put(
-                        MediaStore.Images.Media.ORIENTATION,
-                        image.imageInfo.rotationDegrees.toString()
-                    )
-                    newPictureDetails.put(MediaStore.Images.Media.DISPLAY_NAME, pictureName)
-                    newPictureDetails.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                    newPictureDetails.put(MediaStore.Images.Media.WIDTH, image.width)
-                    newPictureDetails.put(MediaStore.Images.Media.HEIGHT, image.height)
-                    newPictureDetails.put(
-                        MediaStore.Images.Media.RELATIVE_PATH,
-                        Environment.DIRECTORY_DCIM + "/SistemiDigitaliM"
-                    )
-                    var stream: OutputStream? = null
-                    try {
-                        //Add picture to MediaStore in order to make it accessible to other apps
-                        //The result of the insert is the handle to the picture inside the MediaStore
-                        var picturePublicUri = applicationContext.contentResolver.insert(
-                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                            newPictureDetails
-                        )
-                        if(picturePublicUri is Uri) {
-                            stream =
-                                applicationContext.contentResolver.openOutputStream(picturePublicUri)
-                        }
-                        val bitmapImage = getLastBitMap()
-                        if (!bitmapImage!!.compress(
-                                Bitmap.CompressFormat.JPEG,
-                                100,
-                                stream
-                            )
-                        ) { //Save the image in the gallery
-                            //Error
-                        }
-                        image.close()
-                        stream?.close()
-                        Toast.makeText(applicationContext, "Picture Taken", Toast.LENGTH_SHORT)
-                            .show()
-                    } catch (exception: java.lang.Exception) {
-                        exception.printStackTrace()
-                        Toast.makeText(
-                            applicationContext,
-                            "Error saving photo: " + exception.message,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            }
-        )
-    }*/
 
 
 
